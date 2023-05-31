@@ -17,6 +17,7 @@ class SearchRequest:
         "ID",
         "Author",
         "Title",
+        "ISBNs",
         "Publisher",
         "Year",
         "Pages",
@@ -70,32 +71,32 @@ class SearchRequest:
         # or link text (for the title) should be preserved.
         # Both the book title and mirror links have a "title" attribute,
         # but only the mirror links have it filled.(title vs title="libgen.io")
-        output_data = []
+        # for row in information_table.find_all("td"):
+        #     print(row)
+        #     print("\n\n\n")
+        # print(information_table)
+        raw_data = []
         for row in information_table.find_all("tr")[1:]:
             row_data = dict()
-            for col_name, row_col in zip(self.col_names, row.find_all("td")):
-                a = row_col.find("a")
-                #mirrors
-                if row_col.find("a") and row_col.find("a").has_attr("title") and row_col.find("a")["title"] != "":
-                    row_data[col_name] = row_col.a.get("href")
-                    continue
-                
-                if col_name == "Title":
-
-                    ISBNs = []
-                    for i in row_col.find_all("i")[1].stripped_strings:
-                         ISBNs += i.split(", ")
-                    self.strip_i_tag_from_soup(row_col)
-                    title_field = "".join(row_col.find_all("a")[1].stripped_strings)
-                    row_data["Title"] = title_field
-                    row_data["ISBNs"] = ISBNs
-
+            for col_name, row_col in zip(col_names ,row.find_all("td")):
+                print(col_name)
+                print(row_col)
+                print("\n\n")
                     
-                else:
-                    self.strip_i_tag_from_soup(row_col)
-                    val = "".join(row_col.stripped_strings)
-                    row_data[col_name] = val
+                    # print(row)
+        raw_data = [
+            [
+                ("test", td.a["href"], td.find_all("i"))
+                if td.find("a")
+                and td.find("a").has_attr("title")
+                and td.find("a")["title"] != ""
+                else "".join(td.stripped_strings)
+                for td in row.find_all("td")
+            ]
+            for row in information_table.find_all("tr")[
+                1:
+            ]  # Skip row 0 as it is the headings row
+        ]
 
-            output_data.append(row_data)
-                    
+        output_data = [dict(zip(self.col_names, row)) for row in raw_data]
         return output_data
