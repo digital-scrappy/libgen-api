@@ -81,12 +81,19 @@ class SearchRequest:
                     continue
                 
                 if col_name == "Title":
-
                     ISBNs = []
-                    for i in row_col.find_all("i")[1].stripped_strings:
-                         ISBNs += i.split(", ")
-                    self.strip_i_tag_from_soup(row_col)
-                    title_field = "".join(row_col.find_all("a")[1].stripped_strings)
+                    for a in row_col.find_all("a"):
+                        if a.has_attr("title"):
+                            print(a)
+                            i = a.find("i")
+                            if i:
+                                isbn_string = next(i.stripped_strings)
+                                
+                                ISBNs += isbn_string.split(", ")
+                            self.strip_i_tag_from_soup(a)
+                            title_field = "".join(a.stripped_strings)
+                            
+                            
                     row_data["Title"] = title_field
                     row_data["ISBNs"] = ISBNs
 
