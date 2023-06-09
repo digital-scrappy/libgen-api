@@ -1,5 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
+import logging
 
 # WHY
 # The SearchRequest module contains all the internal logic for the library.
@@ -31,12 +32,19 @@ class SearchRequest:
         "Edit",
     ]
 
-    def __init__(self, query, search_type="title"):
+    def __init__(self,
+                 query,
+                 base_url,
+                 search_type="title",
+                 proxies = None):
         self.query = query
+        self.proxies = proxies
+        self.base_url = base_url
+        
         self.search_type = search_type
 
         if len(self.query) < 3:
-            raise Exception("Query is too short")
+            raise Exception(f"Query is too short:'{query}'")
 
     def strip_i_tag_from_soup(self, soup):
         subheadings = soup.find_all("i")
@@ -48,23 +56,33 @@ class SearchRequest:
         query_parsed = "%20".join(self.query.split(" "))
         if self.search_type.lower() == "title":
             search_url = (
-                f"http://gen.lib.rus.ec/search.php?req={query_parsed}&column=title"
+                f"{self.base_url}/search.php?req={query_parsed}&column=title"
             )
         elif self.search_type.lower() == "author":
             search_url = (
-                f"http://gen.lib.rus.ec/search.php?req={query_parsed}&column=author"
+                f"{self.base_url}/search.php?req={query_parsed}&column=author"
             )
-        search_page = requests.get(search_url)
+        elif self.search_type.lower() == "isbn":
+            search_url = (
+                f"{self.base_url}/search.php?req={query_parsed}&column=identifier"
+            )
+        search_page = requests.get(search_url, proxies = self.proxies)
         return search_page
 
     def aggregate_request_data(self):
+        
         search_page = self.get_search_page()
         soup = BeautifulSoup(search_page.text, "lxml")
         # self.strip_i_tag_from_soup(soup)
 
         # Libgen results contain 3 tables
         # Table2: Table of data to scrape.
-        information_table = soup.find_all("table")[2]
+        try:
+            information_table = soup.find_all("table")[2]
+        except IndexError as e:
+            logging.warn("did not find results table in soup")
+            return []
+            
 
         # Determines whether the link url (for the mirror)
         # or link text (for the title) should be preserved.
@@ -84,7 +102,6 @@ class SearchRequest:
                     ISBNs = []
                     for a in row_col.find_all("a"):
                         if a.has_attr("title"):
-                            print(a)
                             i = a.find("i")
                             if i:
                                 isbn_string = next(i.stripped_strings)

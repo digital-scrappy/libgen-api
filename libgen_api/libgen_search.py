@@ -6,12 +6,28 @@ MIRROR_SOURCES = ["GET", "Cloudflare", "IPFS.io", "Infura"]
 
 
 class LibgenSearch:
+    def __init__(self, proxies, base_url="http://libgen.rs"):
+        self.proxies = proxies
+        self.base_url = base_url
     def search_title(self, query):
-        search_request = SearchRequest(query, search_type="title")
+        search_request = SearchRequest(query,
+                                       search_type="title",
+                                       proxies=self.proxies,
+                                       base_url=self.base_url)
         return search_request.aggregate_request_data()
-
+    
+    def search_isbn(self, query):
+        search_request = SearchRequest(query,
+                                       search_type="isbn",
+                                       proxies=self.proxies,
+                                       base_url=self.base_url)
+        return search_request.aggregate_request_data()
+                    
     def search_author(self, query):
-        search_request = SearchRequest(query, search_type="author")
+        search_request = SearchRequest(query,
+                                       search_type="author",
+                                       proxies=self.proxies,
+                                       base_url=self.base_url)
         return search_request.aggregate_request_data()
 
     def search_title_filtered(self, query, filters, exact_match=True):
@@ -32,7 +48,7 @@ class LibgenSearch:
 
     def resolve_download_links(self, item):
         mirror_1 = item["Mirror_1"]
-        page = requests.get(mirror_1)
+        page = requests.get(mirror_1, proxies=self.proxies)
         soup = BeautifulSoup(page.text, "html.parser")
         links = soup.find_all("a", string=MIRROR_SOURCES)
         download_links = {link.string: link["href"] for link in links}
